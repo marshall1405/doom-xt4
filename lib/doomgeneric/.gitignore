@@ -1,0 +1,17 @@
+*.o
+*.obj
+*.exe
+*.DS_Store
+*.log
+*.user
+*~
+.vs/
+Debug/
+Release/
+Build/
+doomgeneric
+doomgeneric.map
+README.md
+README.TXT
+LICENSE
+screenshots/
