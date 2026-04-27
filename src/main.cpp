@@ -79,6 +79,8 @@ void loop() {
 static void renderToEInk() {
     static int frameCount = 0;
 
+    bool stateChanged = Game::consumeFullRefresh();
+
     uint8_t* fb = display.getFrameBuffer();
     memset(fb, 0xFF, EInkDisplay::MAX_BUFFER_SIZE);
 
@@ -97,16 +99,24 @@ static void renderToEInk() {
         }
     }
 
-    EInkDisplay::RefreshMode mode = (++frameCount % 40 == 0)
-        ? EInkDisplay::FULL_REFRESH
-        : EInkDisplay::FAST_REFRESH;
+    EInkDisplay::RefreshMode mode;
+    if (stateChanged) {
+        // Clear ghosting from the previous state
+        frameCount = 0;
+        mode = EInkDisplay::FULL_REFRESH;
+    } else if (Game::isPlaying() && ++frameCount % 40 == 0) {
+        // Periodic full refresh only during gameplay to prevent ghosting buildup
+        mode = EInkDisplay::FULL_REFRESH;
+    } else {
+        mode = EInkDisplay::FAST_REFRESH;
+    }
 
     display.displayBuffer(mode);
 }
 
 static void powerOff() {
-    display.clearScreen(0xFF);
-    display.displayBuffer(EInkDisplay::FULL_REFRESH);
+    Game::prepareOffScreen();
+    renderToEInk();
     display.deepSleep();
     esp_deep_sleep_enable_gpio_wakeup(1ULL << InputManager::POWER_BUTTON_PIN,
                                       ESP_GPIO_WAKEUP_GPIO_LOW);
