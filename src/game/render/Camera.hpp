@@ -13,6 +13,8 @@ class Camera {
     static constexpr int W_2 = W / 2;
 
     Vector2 pos, dir, plane;
+    uint32_t _gunFlashMs = 0;
+    static constexpr uint32_t GUN_FLASH_DURATION = 300;
 public:
     float Zbuffer[W];
 
@@ -21,6 +23,8 @@ public:
         dir   = p.dir;
         plane = Vector2(dir.y * 0.66f, -dir.x * 0.66f);
     }
+
+    void triggerGunFlash() { _gunFlashMs = millis(); }
 
     void draw(int health, int ammo) {
         drawWalls();
@@ -134,11 +138,13 @@ void Camera::drawSprites() {
 }
 
 void Camera::drawGun() {
-    // Render bmp_pist_bits scaled to 48x48 (1.5x), bottom-center
+    bool flashing = (_gunFlashMs != 0 && millis() - _gunFlashMs < GUN_FLASH_DURATION);
+
     constexpr int GW = 48;
     constexpr int GH = 48;
     int originX = W / 2 - GW / 2 + 8;
-    int originY = H - GH + 10; // show ~38 rows
+    // Recoil: gun drops 3px on fire
+    int originY = H - GH + 10 + (flashing ? 3 : 0);
 
     for (int dy = 0; dy < GH; dy++) {
         int sy = dy * 32 / GH;
@@ -148,6 +154,29 @@ void Camera::drawGun() {
             uint8_t color = sprBit(bmp_pist_bits, 0, sx, sy) ? 10 : 240;
             Screen::drawPixel(originX + dx, originY + dy, color);
         }
+    }
+
+    if (flashing) {
+        // Barrel tip is at sprite row 0, source-x ~14-15, which maps to screen ~+21
+        // Draw a small muzzle flash starburst above it
+        int fx = originX + 21;
+        int fy = originY - 1; // just above the barrel tip
+        // Vertical stem
+        Screen::drawPixel(fx,   fy,   10);
+        Screen::drawPixel(fx,   fy-1, 10);
+        Screen::drawPixel(fx,   fy-2, 10);
+        Screen::drawPixel(fx,   fy-3, 10);
+        Screen::drawPixel(fx,   fy-4, 10);
+        // Horizontal spread at midpoint
+        Screen::drawPixel(fx-2, fy-2, 10);
+        Screen::drawPixel(fx-1, fy-2, 10);
+        Screen::drawPixel(fx+1, fy-2, 10);
+        Screen::drawPixel(fx+2, fy-2, 10);
+        // Diagonal sparks
+        Screen::drawPixel(fx-2, fy-4, 10);
+        Screen::drawPixel(fx+2, fy-4, 10);
+        Screen::drawPixel(fx-1, fy-1, 240);
+        Screen::drawPixel(fx+1, fy-1, 240);
     }
 }
 
@@ -196,19 +225,19 @@ void Camera::drawHUD(int health, int ammo) {
     // HP: label + number
     // Draw "HP" as two tiny 3x5 letters
     // H
-    Screen::drawPixel(2,H-8,240); Screen::drawPixel(4,H-8,240);
-    Screen::drawPixel(2,H-7,240); Screen::drawPixel(4,H-7,240);
-    Screen::drawPixel(2,H-6,240); Screen::drawPixel(3,H-6,240); Screen::drawPixel(4,H-6,240);
-    Screen::drawPixel(2,H-5,240); Screen::drawPixel(4,H-5,240);
-    Screen::drawPixel(2,H-4,240); Screen::drawPixel(4,H-4,240);
+    Screen::drawPixel(5,H-8,240); Screen::drawPixel(7,H-8,240);
+    Screen::drawPixel(5,H-7,240); Screen::drawPixel(7,H-7,240);
+    Screen::drawPixel(5,H-6,240); Screen::drawPixel(6,H-6,240); Screen::drawPixel(7,H-6,240);
+    Screen::drawPixel(5,H-5,240); Screen::drawPixel(7,H-5,240);
+    Screen::drawPixel(5,H-4,240); Screen::drawPixel(7,H-4,240);
     // P
-    Screen::drawPixel(6,H-8,240); Screen::drawPixel(7,H-8,240);
-    Screen::drawPixel(6,H-7,240); Screen::drawPixel(8,H-7,240);
-    Screen::drawPixel(6,H-6,240); Screen::drawPixel(7,H-6,240);
-    Screen::drawPixel(6,H-5,240);
-    Screen::drawPixel(6,H-4,240);
+    Screen::drawPixel(9,H-8,240); Screen::drawPixel(10,H-8,240);
+    Screen::drawPixel(9,H-7,240); Screen::drawPixel(11,H-7,240);
+    Screen::drawPixel(9,H-6,240); Screen::drawPixel(10,H-6,240);
+    Screen::drawPixel(9,H-5,240);
+    Screen::drawPixel(9,H-4,240);
 
-    drawNumber(11, H-8, health, 240);
+    drawNumber(14, H-8, health, 240);
 
     // AMMO: label + number on right side
     // A

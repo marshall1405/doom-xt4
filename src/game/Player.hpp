@@ -6,7 +6,7 @@
 
 class Player {
     float _yaw = 0;
-    float _vel = 3.0f;
+    float _vel = 1.5f;
 public:
     Vector2 pos;
     Vector2 dir;
